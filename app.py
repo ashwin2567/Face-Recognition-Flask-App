@@ -6,7 +6,7 @@ app = Flask(__name__)
 def hello():
     return "Hello :)"
 
-@app.route('/compare', methods = ['POST']) 
+@app.route('/compare', methods = ['GET']) 
 def compare(): 
     data = request.get_json()
     if len(data) != 2:

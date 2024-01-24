@@ -43,7 +43,7 @@ def get_image_data(image_path_or_url):
     return face_recognition.load_image_file(image_data)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False, host = '0.0.0.0')
 '''
 def image_match1(known, unknown):
     try:

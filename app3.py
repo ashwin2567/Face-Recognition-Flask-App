@@ -10,8 +10,26 @@ from datetime import datetime
 app = Flask(__name__)
 
 #st = datetime.now()
+def load_image(image_path_or_url):
+    try:
+        if image_path_or_url.startswith(('http:', 'https:')):
+            response = requests.get(image_path_or_url)
+            response.raise_for_status()  # Raise an exception for bad responses
+            image = cv2.imdecode(np.frombuffer(response.content, np.uint8), -1)
+        else:
+            image = cv2.imread(image_path_or_url)
+
+        return image
+    except Exception as e:
+        print(f"Error loading image from {image_path_or_url}: {e}")
+        return None
+
+
+    return image
 def preprocess_image(image_path, resize_height=200, grayscale=True, equalize_histogram=True):
-    image = cv2.imread(image_path)
+    print("image_path", image_path)
+    image = load_image(image_path)
+    #image = cv2.imread(image_path)
 
     ratio = resize_height / image.shape[0]
     new_width = int(image.shape[1] * ratio)
@@ -52,6 +70,7 @@ def face_compare():
     data = request.get_json()
     image_path1 = data['img1']
     image_path2 = data['img2']
+
     processed_image1 = preprocess_image(image_path1)
     processed_image2 = preprocess_image(image_path2)
 
@@ -66,7 +85,7 @@ def face_compare():
     face_encoding2 = face_recognition.face_encodings(processed_image2, known_face_locations=face_locations2, model = 'large')[0]
 
     
-    results = face_recognition.compare_faces([face_encoding1], face_encoding2)
+    results = face_recognition.compare_faces([face_encoding1], face_encoding2, tolerance=0.4)
     return jsonify({'result': str(results[0]), 'time':str(datetime.now()-st)})
     
     # return results[0]
@@ -93,4 +112,4 @@ def get_image_data(image_path_or_url):
 # print(datetime.now()-st)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',debug=False, threaded=True)
+    app.run(debug=True, threaded=True)

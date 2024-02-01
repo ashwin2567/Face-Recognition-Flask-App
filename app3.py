@@ -9,33 +9,37 @@ from io import BytesIO
 from datetime import datetime
 app = Flask(__name__)
 
-#st = datetime.now()
 def load_image(image_path_or_url):
     try:
         if image_path_or_url.startswith(('http:', 'https:')):
             response = requests.get(image_path_or_url)
-            response.raise_for_status()  # Raise an exception for bad responses
+            response.raise_for_status()
             image = cv2.imdecode(np.frombuffer(response.content, np.uint8), -1)
         else:
             image = cv2.imread(image_path_or_url)
-
+        if image is not None:
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         return image
     except Exception as e:
         print(f"Error loading image from {image_path_or_url}: {e}")
         return None
-
-
-    return image
+    #return cv2.imread(image_path_or_url)
+    
 def preprocess_image(image_path, resize_height=200, grayscale=True, equalize_histogram=True):
-    print("image_path", image_path)
-    image = load_image(image_path)
-    #image = cv2.imread(image_path)
+    try:
+        image = load_image(image_path)
+        ratio = resize_height / image.shape[0]
+        #if ratio > 0.1:
+        new_width = int(image.shape[1] * ratio)
+        print(image_path, image.shape, ratio, new_width)
+        
+        new_width = int(image.shape[1] * ratio)
+        resized_image = cv2.resize(image, (new_width, resize_height))
 
-    ratio = resize_height / image.shape[0]
-    new_width = int(image.shape[1] * ratio)
-    resized_image = cv2.resize(image, (new_width, resize_height))
-
-    return resized_image
+        return resized_image
+        #return image
+    except Exception as e:
+        print(e)
 
 
 
@@ -73,16 +77,24 @@ def face_compare():
 
     processed_image1 = preprocess_image(image_path1)
     processed_image2 = preprocess_image(image_path2)
-
     
+    known_image = get_image_data(image_path1)
+    # known_encoding = face_recognition.face_encodings(known_image, model='large', num_jitters=1)[0]
+    
+    # unknown_image = get_image_data(image_path2)
+    # unknown_encoding = face_recognition.face_encodings(unknown_image, model='large', num_jitters=1)[0]
+    
+    # results = face_recognition.compare_faces([known_encoding], unknown_encoding, tolerance=0.4)
     face_locations1 = face_recognition.face_locations(processed_image1)
     face_locations2 = face_recognition.face_locations(processed_image2)
 
-    if not face_locations1 or not face_locations2:
-        return False
+    # if not face_locations1 or not face_locations2:
+    #     return jsonify({'result': 'Face not found', 'time':str(datetime.now()-st)})
 
-    face_encoding1 = face_recognition.face_encodings(processed_image1, known_face_locations=face_locations1, model = 'large')[0]
-    face_encoding2 = face_recognition.face_encodings(processed_image2, known_face_locations=face_locations2, model = 'large')[0]
+    face_encoding1 = face_recognition.face_encodings(processed_image1, known_face_locations=face_locations1, model = 'small')[0]
+    face_encoding2 = face_recognition.face_encodings(processed_image2, known_face_locations=face_locations2, model = 'small')[0]
+    #face_encoding1 = face_recognition.face_encodings(known_image, model = 'small')[0]
+    #face_encoding2 = face_recognition.face_encodings(processed_image2, model = 'small')[0]
 
     
     results = face_recognition.compare_faces([face_encoding1], face_encoding2, tolerance=0.4)

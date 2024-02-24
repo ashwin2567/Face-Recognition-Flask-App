@@ -7,6 +7,7 @@ import face_recognition
 import requests
 from io import BytesIO
 from datetime import datetime
+import imutils
 app = Flask(__name__)
 
 def load_image(image_path_or_url):
@@ -28,16 +29,17 @@ def load_image(image_path_or_url):
 def preprocess_image(image_path, resize_height=200, grayscale=True, equalize_histogram=True):
     try:
         image = load_image(image_path)
-        ratio = resize_height / image.shape[0]
-        #if ratio > 0.1:
-        new_width = int(image.shape[1] * ratio)
+        length = image.shape[0]
+        width = image.shape[1]
+        if width > length:
+            image = imutils.rotate(image, angle=270) 
+        ratio = resize_height / length
+        new_width = int(width * ratio)
         print(image_path, image.shape, ratio, new_width)
         
-        new_width = int(image.shape[1] * ratio)
+        new_width = int(width * ratio)
         resized_image = cv2.resize(image, (new_width, resize_height))
-
         return resized_image
-        #return image
     except Exception as e:
         print(e)
 
@@ -78,7 +80,7 @@ def face_compare():
     processed_image1 = preprocess_image(image_path1)
     processed_image2 = preprocess_image(image_path2)
     
-    known_image = get_image_data(image_path1)
+    #known_image = get_image_data(image_path1)
     # known_encoding = face_recognition.face_encodings(known_image, model='large', num_jitters=1)[0]
     
     # unknown_image = get_image_data(image_path2)
@@ -88,8 +90,10 @@ def face_compare():
     face_locations1 = face_recognition.face_locations(processed_image1)
     face_locations2 = face_recognition.face_locations(processed_image2)
 
-    # if not face_locations1 or not face_locations2:
-    #     return jsonify({'result': 'Face not found', 'time':str(datetime.now()-st)})
+    if not face_locations1:
+        return jsonify({'result': 'Face 1 not found', 'time':str(datetime.now()-st)})
+    if not face_locations2:
+        return jsonify({'result': 'Face 2 not found', 'time':str(datetime.now()-st)})
 
     face_encoding1 = face_recognition.face_encodings(processed_image1, known_face_locations=face_locations1, model = 'small')[0]
     face_encoding2 = face_recognition.face_encodings(processed_image2, known_face_locations=face_locations2, model = 'small')[0]

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anushwin's Tic Tac Toe</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: linear-gradient(to bottom right, #4CAF50, #2196F3);
+            font-family: 'Arial', sans-serif;
+            color: white;
+        }
+
+        #ticTacToeBoard {
+            display: grid;
+            grid-template-columns: repeat(3, 100px);
+            grid-gap: 5px;
+        }
+
+        .cell {
+            width: 100px;
+            height: 100px;
+            text-align: center;
+            line-height: 100px;
+            font-size: 24px;
+            background: #333;
+            cursor: pointer;
+        }
+
+        #resultScreen {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #newGameButton {
+            background: #fff;
+            color: #333;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="ticTacToeBoard"></div>
+    <div id="resultScreen">
+        <div id="resultMessage"></div>
+        <button id="newGameButton">New Game</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const board = document.getElementById('ticTacToeBoard');
+            const cells = [];
+            const resultScreen = document.getElementById('resultScreen');
+            const resultMessage = document.getElementById('resultMessage');
+            const newGameButton = document.getElementById('newGameButton');
+
+            let currentPlayer = 'X';
+            let moves = 0;
+            let winner = null;
+
+            // Create the Tic Tac Toe board
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                cell.addEventListener('click', () => makeMove(i));
+                cells.push(cell);
+                board.appendChild(cell);
+            }
+
+            // Handle a move on the board
+            const makeMove = (index) => {
+                if (cells[index].innerHTML === '' && !winner) {
+                    cells[index].innerHTML = currentPlayer;
+                    moves++;
+
+                    if (checkWinner()) {
+                        winner = currentPlayer;
+                        showResult();
+                    } else if (moves === 9) {
+                        showResult(true); // It's a draw
+                    } else {
+                        currentPlayer = currentPlayer === 'Anu' ? 'Ashu' : 'Anu';
+                    }
+                }
+            };
+
+            // Check if there is a winner
+            const checkWinner = () => {
+                const winPatterns = [
+                    [0, 1, 2],
+                    [3, 4, 5],
+                    [6, 7, 8],
+                    [0, 3, 6],
+                    [1, 4, 7],
+                    [2, 5, 8],
+                    [0, 4, 8],
+                    [2, 4, 6],
+                ];
+
+                return winPatterns.some(pattern => {
+                    const [a, b, c] = pattern;
+                    return cells[a].innerHTML !== '' && cells[a].innerHTML === cells[b].innerHTML && cells[a].innerHTML === cells[c].innerHTML;
+                });
+            };
+
+            // Display the result screen
+            const showResult = (isDraw = false) => {
+                resultMessage.innerHTML = isDraw ? "It's a Draw!" : `${winner} Wins!`;
+                resultScreen.style.display = 'block';
+            };
+
+            // Start a new game
+            const newGame = () => {
+                cells.forEach(cell => {
+                    cell.innerHTML = '';
+                });
+                currentPlayer = 'Anu';
+                moves = 0;
+                winner = null;
+                resultScreen.style.display = 'none';
+            };
+
+            // Event listener for the new game button
+            newGameButton.addEventListener('click', newGame);
+
+            // Initial new game
+            newGame();
+        });
+    </script>
+</body>
+</html>

@@ -52,7 +52,7 @@ def face_compare():
     face_locations1 = face_recognition.face_locations(processed_image1)
     face_locations2 = face_recognition.face_locations(processed_image2)
     #show_bounding_box(face_locations1,processed_image1)
-    #show_bounding_box(face_locations2,processed_image2)
+    show_bounding_box(face_locations2,processed_image2)
     if not face_locations1:
         return jsonify({'result': 'Face 1 not found', 'time':str(datetime.now()-st)})
     if not face_locations2:
@@ -61,7 +61,7 @@ def face_compare():
     face_encoding1 = face_recognition.face_encodings(processed_image1, known_face_locations=face_locations1, model = 'small')[0]
     face_encoding2 = face_recognition.face_encodings(processed_image2, known_face_locations=face_locations2, model = 'small')[0]
     
-    results = face_recognition.compare_faces([face_encoding1], face_encoding2, tolerance=0.47   )
+    results = face_recognition.compare_faces([face_encoding1], face_encoding2, tolerance=0.47)
     return jsonify({'result': str(results[0]), 'time':str(datetime.now()-st)})
 
 def show_bounding_box(face_loc, img):

@@ -2,33 +2,38 @@ from flask import Flask, request, jsonify
 import face_recognition
 import requests
 from io import BytesIO
+from datetime import datetime
 app = Flask(__name__)
 
 @app.route("/")
 def hello():
     return "Hello :)"
 
-@app.route('/compare', methods = ['GET']) 
+@app.route('/compare', methods = ['GET','POST']) 
 def compare(): 
+    start = datetime.now()
     data = request.get_json()
-    if len(data) != 2:
-        return jsonify({'result': 'Atleast 2 img required'})
+    # if len(data) != 2:
+    #     return jsonify({'result': 'Atleast 2 img required'})
     img1 = data['img1']
     img2 = data['img2']
     result = image_match(img1,img2)
-    return jsonify({'result': str(result[0])})
+    
+    
+    return jsonify({'result': str(result[0]), 'time':str(datetime.now()-start)})
 
 def image_match(img1, img2):
     try:
         known_image = get_image_data(img1)
-        known_encoding = face_recognition.face_encodings(known_image)[0]
+        known_encoding = face_recognition.face_encodings(known_image, model='large', num_jitters=1)[0]
         
         unknown_image = get_image_data(img2)
-        unknown_encoding = face_recognition.face_encodings(unknown_image)[0]
+        unknown_encoding = face_recognition.face_encodings(unknown_image, model='large', num_jitters=1)[0]
         
         results = face_recognition.compare_faces([known_encoding], unknown_encoding, tolerance=0.4)
         return results
-    except Exception:
+    except Exception as e:
+        print(e)
         return ['Error in processing']
 
 def get_image_data(image_path_or_url):
@@ -43,7 +48,7 @@ def get_image_data(image_path_or_url):
     return face_recognition.load_image_file(image_data)
 
 if __name__ == '__main__':
-    app.run(debug=False, host = '0.0.0.0')
+    app.run(port=8000,debug=True, threaded=True)
 '''
 def image_match1(known, unknown):
     try:

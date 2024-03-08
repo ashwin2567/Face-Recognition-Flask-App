@@ -18,8 +18,8 @@ def load_image(image_path_or_url):
             image = cv2.imdecode(np.frombuffer(response.content, np.uint8), -1)
         else:
             image = cv2.imread(image_path_or_url)
-        if image is not None:
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # if image is not None:
+        #     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         return image
     except Exception as e:
         print(f"Error loading image from {image_path_or_url}: {e}")
@@ -31,14 +31,16 @@ def preprocess_image(image_path, resize_height=200, grayscale=True, equalize_his
         image = load_image(image_path)
         length = image.shape[0]
         width = image.shape[1]
-        if width > length:
-            image = imutils.rotate(image, angle=270) 
+        # if width > length:
+        #     image = imutils.rotate(image, angle=270) 
         ratio = resize_height / length
         new_width = int(width * ratio)
         print(image_path, image.shape, ratio, new_width)
         
         new_width = int(width * ratio)
         resized_image = cv2.resize(image, (new_width, resize_height))
+        cv2.imshow('a', resized_image)
+        cv2.waitKey(0)
         return resized_image
     except Exception as e:
         print(e)

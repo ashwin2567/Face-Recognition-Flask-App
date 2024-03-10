@@ -1,3 +1,8 @@
+pip install insightface
+pip install onnxruntime
+
+
+
 create a Folder and place the code file 'app.py'
 Move inside in the folder in cmd
 1.Create a virtual env  

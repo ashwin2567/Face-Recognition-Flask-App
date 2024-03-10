@@ -3,6 +3,7 @@ import cv2
 import insightface
 import numpy as np
 from datetime import datetime
+import requests
 
 app = Flask(__name__)
 
@@ -15,9 +16,20 @@ def normalize_embedding(embedding):
     norm = np.linalg.norm(embedding)
     return embedding / norm
 
+
+def load_image(image_path_or_url):
+    if image_path_or_url.startswith(('http:', 'https:')):
+        response = requests.get(image_path_or_url)
+        response.raise_for_status()
+        image = cv2.imdecode(np.frombuffer(response.content, np.uint8), -1)
+    else:
+        image = cv2.imread(image_path_or_url)
+    return image
+
+
 def compare_faces(image1_path, image2_path):
-    img1 = cv2.imread(image1_path)
-    img2 = cv2.imread(image2_path)
+    img1 = load_image(image1_path)
+    img2 = load_image(image2_path)
 
     faces1 = model.get(img1)
     faces2 = model.get(img2)
@@ -49,7 +61,6 @@ def compare_faces_endpoint():
     image2_path = data['img2']
 
     result, similarity_score = compare_faces(image1_path, image2_path)
-    print("typr", type(result))
     return jsonify({'result': str(result),'similarity_score': str(similarity_score),'time':str(datetime.now()-st)})
 
 if __name__ == '__main__':

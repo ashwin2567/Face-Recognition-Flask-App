@@ -1,95 +1,72 @@
+from flask import Flask, request, jsonify
 import cv2
+import insightface
 import numpy as np
-import time
+from datetime import datetime
+from PIL import Image
+import requests
+from io import BytesIO
 
 
-clahefilter = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(16,16))
+app = Flask(__name__)
+
+model = insightface.app.FaceAnalysis()
 
 
-img = cv2.imread('OI0002_05032024144053.jpg')
+model.prepare(ctx_id=-1)
 
-while True:
-    t1 = time.time() 
-    img = img.copy()
+def normalize_embedding(embedding):
+    norm = np.linalg.norm(embedding)
+    return embedding / norm
 
-    ## crop if required 
-    #FACE
-    x,y,h,w = 550,250,400,300
-    # img = img[y:y+h, x:x+w]
+def load_image(image_path_or_url):
+    if image_path_or_url.startswith(('http://', 'https://')):
+        response = requests.get(image_path_or_url)
+        img = Image.open(BytesIO(response.content))
+    else:
+        img = Image.open(image_path_or_url)
+    return np.array(img)
 
-    #NORMAL
-    # convert to gray
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    grayimg = gray
+def compare_faces(image1_path, image2_path):
+    # img1 = cv2.imread(image1_path)
+    # img2 = cv2.imread(image2_path)
+    img1 = load_image(image1_path)
+    img2 = load_image(image2_path)
 
+    # Detect faces
+    # faces1 = model.get(np.array(img1))
+    # faces2 = model.get(np.array(img2))
+    faces1 = model.get(img1)
+    faces2 = model.get(img2)
 
-    GLARE_MIN = np.array([0, 0, 50],np.uint8)
-    GLARE_MAX = np.array([0, 0, 225],np.uint8)
-
-    hsv_img = cv2.cvtColor(img,cv2.COLOR_BGR2HSV)
-
-    #HSV
-    frame_threshed = cv2.inRange(hsv_img, GLARE_MIN, GLARE_MAX)
-
-
-    #INPAINT
-    mask1 = cv2.threshold(grayimg , 220, 255, cv2.THRESH_BINARY)[1]
-    result1 = cv2.inpaint(img, mask1, 0.1, cv2.INPAINT_TELEA) 
-
+    if len(faces1) == 0 or len(faces2) == 0:
+        return "No faces detected in one or both images"
 
 
-    #CLAHE
-    claheCorrecttedFrame = clahefilter.apply(grayimg)
-
-    #COLOR 
-    lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-    lab_planes = cv2.split(lab)
-    clahe = cv2.createCLAHE(clipLimit=2.0,tileGridSize=(8,8))
-    lab_planes[0] = clahe.apply(lab_planes[0])
-    lab = cv2.merge(lab_planes)
-    clahe_bgr = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+    feat1 = normalize_embedding(model.get(img1)[0].embedding)
+    feat2 = normalize_embedding(model.get(img2)[0].embedding)
 
 
-    #INPAINT + HSV
-    result = cv2.inpaint(img, frame_threshed, 0.1, cv2.INPAINT_TELEA) 
+    similarity = np.dot(feat1, feat2.T)
 
+    threshold = 0.6
+    if similarity > threshold:
+        return True, similarity
+    else:
+        return False, similarity
+@app.route('/', methods = ['GET','POST']) 
+def home():
+    return "InsightFace Server is running"
 
-    #INPAINT + CLAHE
-    grayimg1 = cv2.cvtColor(clahe_bgr, cv2.COLOR_BGR2GRAY)
-    mask2 = cv2.threshold(grayimg1 , 220, 255, cv2.THRESH_BINARY)[1]
-    result2 = cv2.inpaint(img, mask2, 0.1, cv2.INPAINT_TELEA) 
+@app.route('/compare', methods=['GET','POST'])
+def compare_faces_endpoint():
+    st = datetime.now()
+    data = request.get_json()
+    image1_path = data['img1']
+    image2_path = data['img2']
 
+    result, similarity_score = compare_faces(image1_path, image2_path)
+    return jsonify({'result': str(result),'similarity_score': str(similarity_score),'time':str(datetime.now()-st)})
 
-
-    #HSV+ INPAINT + CLAHE
-    lab1 = cv2.cvtColor(result, cv2.COLOR_BGR2LAB)
-    lab_planes1 = cv2.split(lab1)
-    clahe1 = cv2.createCLAHE(clipLimit=2.0,tileGridSize=(8,8))
-    lab_planes1[0] = clahe1.apply(lab_planes1[0])
-    lab1 = cv2.merge(lab_planes1)
-    clahe_bgr1 = cv2.cvtColor(lab1, cv2.COLOR_LAB2BGR)
-
-
-
-
-    # fps = 1./(time.time()-t1)
-    # cv2.putText(clahe_bgr1    , "FPS: {:.2f}".format(fps), (10, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.35, (0, 0, 255))    
-
-    # display it
-    cv2.imshow("IMAGE", img)
-    cv2.imshow("GRAY", gray)
-    cv2.imshow("HSV", frame_threshed)
-    cv2.imshow("CLAHE", clahe_bgr)
-    cv2.imshow("LAB", lab)
-    cv2.imshow("HSV + INPAINT", result)
-    cv2.imshow("INPAINT", result1)
-    cv2.imshow("CLAHE + INPAINT", result2)  
-    cv2.imshow("HSV + INPAINT + CLAHE   ", clahe_bgr1)
-
-
-    # Break with esc key
-    if cv2.waitKey(1) & 0xFF == ord('q'): 
-        break
-
-
-cv2.destroyAllWindows()
+if __name__ == '__main__':
+    app.run(debug=True)

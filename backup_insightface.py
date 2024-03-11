@@ -64,4 +64,4 @@ def compare_faces_endpoint():
     return jsonify({'result': str(result),'similarity_score': str(similarity_score),'time':str(datetime.now()-st)})
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    app.run(debug=True)

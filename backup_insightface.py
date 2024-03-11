@@ -24,7 +24,8 @@ def load_image(image_path_or_url):
         image = cv2.imdecode(np.frombuffer(response.content, np.uint8), -1)
     else:
         image = cv2.imread(image_path_or_url)
-    return image
+    return cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # return image
 
 
 def compare_faces(image1_path, image2_path):
